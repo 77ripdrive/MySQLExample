@@ -1,0 +1,23 @@
+@@ -0,0 +1,25 @@
+#Ignore IDE project files
+.settings
+.project
+.classpath
+**/bin
+*.iml
+*.ipr
+*.iws
+**/.idea
+
+#Build Dirs#
+output/
+.out/**
+# Java files
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+target/
+test-output/
