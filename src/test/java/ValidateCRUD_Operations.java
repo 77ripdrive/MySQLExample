@@ -58,7 +58,7 @@ public class ValidateCRUD_Operations {
             rs.moveToInsertRow();
             rs.updateString("firstName", "Sasha");
             rs.updateString("position", "QA");
-            rs.updateDouble("salary", 900);
+            rs.updateInt("salary", 900);
             rs.insertRow();
             rs.moveToCurrentRow();
             rs.last();
@@ -87,7 +87,7 @@ public class ValidateCRUD_Operations {
             }
             rs.last();
         }
-        Assertions.assertEquals(1100, updateWorker.getSalary());
+        Assertions.assertEquals(worker.getSalary(), updateWorker.getSalary());
     }
 
     @Test
