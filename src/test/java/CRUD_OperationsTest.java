@@ -1,7 +1,5 @@
 import entity.Worker;
 import org.junit.jupiter.api.*;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 import utils.ActionMySQL;
 import utils.MySQLInit;
 
@@ -13,10 +11,12 @@ import java.util.logging.Logger;
 
 import static java.lang.String.format;
 
-@RunWith(JUnitPlatform.class)
-public class ValidateCRUD_Operations {
+@DisplayName("Base Create/Read/Update/Delete operations")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class CRUD_OperationsTest {
 
-    private static final Logger LGR = Logger.getLogger(ValidateCRUD_Operations.class.getName());
+    private static final Logger LGR = Logger.getLogger(CRUD_OperationsTest.class.getName());
     private final Worker expectWorker1 = new Worker(1, "Ivan", "Dev", 1000);
     private final Worker updateWorker = new Worker(1, "Sasha", "QA", 1100);
     private static String sqlDbName = MySQLInit.getValue("mysql.db");
@@ -25,12 +25,12 @@ public class ValidateCRUD_Operations {
     private static String sqlUseDataBase = MySQLInit.getValue("mysql.use");
     private static String sqlInsertFirstWorker = MySQLInit.getValue("mysql.first.worker");
     private static String sqlInsertSecondWorker = MySQLInit.getValue("mysql.second.worker");
-    private static String sqlSelect = format("select * from %s", sqlTableName);
+    private static String sqlSelect = MySQLInit.getValue("mysql.select.all.from.table");
     private static Connection dbConnect;
-    private static Statement stmt;
-    private Worker worker;
+
 
     @BeforeAll
+    @DisplayName("Create DB , Table and insert data to Table")
     public static void createMySqlTable() throws SQLException {
         dbConnect = MySQLInit.getConnection();
         Statement stmt = dbConnect.createStatement();
@@ -43,8 +43,8 @@ public class ValidateCRUD_Operations {
     @Test
     @Order(1)
     public void whenReadFirstLineInTable_ThenEntityCorrect() throws SQLException {
-
-        try (PreparedStatement pstmt = dbConnect.prepareStatement(sqlSelect + "where Id < 2 ");
+        Worker worker = null;
+        try (PreparedStatement pstmt = dbConnect.prepareStatement(sqlSelect+" where Id < 2 ");
              ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
                 worker = ActionMySQL.createWorker(rs);
@@ -116,7 +116,8 @@ public class ValidateCRUD_Operations {
 
     @Test
     @Order(5)
-    public void whenCreateListOfTableEntity_ThenResultCorrect() {
+    public void whenCreateListOfTableEntity_ThenResultCorrect()  {
+        Worker worker;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         List<Worker> listOfWorkers = new ArrayList<Worker>();
@@ -138,21 +139,21 @@ public class ValidateCRUD_Operations {
 
     @Test
     @Order(6)
-    public void whenCleanAndDeleteTable_ThenResultCorrect()  {
+    public void whenCleanAndDeleteTable_ThenResultCorrect() {
 
-        Assertions.assertTrue(ActionMySQL.cleanAndDeleteTable(stmt, sqlTableName));
+        Assertions.assertTrue(ActionMySQL.cleanAndDeleteTable(dbConnect, sqlTableName));
     }
 
     @Test
     @Order(7)
-    public void whenDeleteDB_ThenResultCorrect()  {
+    public void whenDeleteDB_ThenResultCorrect() {
 
-        Assertions.assertTrue(ActionMySQL.deleteDB(stmt, sqlDbName));
+        Assertions.assertTrue(ActionMySQL.deleteDB(dbConnect, sqlDbName));
     }
 
     @AfterAll
     public static void tearDown() throws SQLException {
-        stmt.close();
+
         dbConnect.close();
     }
 

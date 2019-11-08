@@ -2,9 +2,11 @@ package utils;
 
 import entity.Worker;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,30 +39,31 @@ public class ActionMySQL {
         LOG.log(Level.INFO, "Data inserted in to table");
     }
 
-    public static boolean cleanAndDeleteTable(Statement stmt, String tableName) {
+    public static boolean cleanAndDeleteTable(Connection con, String tableName) {
         String sqlCleanTable = format("TRUNCATE TABLE %s", tableName);
         String sqlDeleteTable = format("DROP TABLE %s ", tableName);
-        try {
+        try {Statement stmt = Objects.requireNonNull(con).createStatement();
             stmt.executeUpdate(sqlCleanTable);
             stmt.executeUpdate(sqlDeleteTable);
         } catch (Exception ex) {
-            LOG.log(Level.INFO, "Table " + tableName + "clean and delete fail");
+            LOG.log(Level.INFO, "Table " + tableName + " clean and delete fail");
             return false;
         }
-        LOG.log(Level.INFO, "Table " + tableName + "clean and delete completed");
+        LOG.log(Level.INFO, "Table " + tableName + " clean and delete completed");
         return true;
     }
 
 
-    public static boolean deleteDB(Statement stmt, String dbName) {
+    public static boolean deleteDB(Connection con, String dbName) {
+
         String sql = format("DROP DATABASE %s", dbName);
-        try {
+        try {Statement stmt = Objects.requireNonNull(con).createStatement();
             stmt.executeUpdate(sql);
         } catch (Exception ex) {
-            LOG.log(Level.INFO, "Database " + dbName + "deleted fail");
+            LOG.log(Level.INFO, "Database " + dbName + " deleted fail");
             return false;
         }
-        LOG.log(Level.INFO, "Database " + dbName + "deleted successfully");
+        LOG.log(Level.INFO, "Database " + dbName + " deleted successfully");
         return true;
     }
 
