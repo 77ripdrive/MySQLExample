@@ -48,6 +48,5 @@ public class MySQLInit {
             LOG.log(Level.INFO, ex.getMessage(), ex);
         }
         return props;
-
     }
 }

@@ -1,5 +1,7 @@
 import entity.Worker;
 import org.junit.jupiter.api.*;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
 import utils.ActionMySQL;
 import utils.MySQLInit;
 
@@ -11,25 +13,28 @@ import java.util.logging.Logger;
 
 import static java.lang.String.format;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@RunWith(JUnitPlatform.class)
 public class ValidateCRUD_Operations {
 
     private static final Logger LGR = Logger.getLogger(ValidateCRUD_Operations.class.getName());
     private final Worker expectWorker1 = new Worker(1, "Ivan", "Dev", 1000);
     private final Worker updateWorker = new Worker(1, "Sasha", "QA", 1100);
     private static String sqlDbName = MySQLInit.getValue("mysql.db");
+    private static String sqlTableName = MySQLInit.getValue("mysql.table.name");
     private static String sqlCreateTable = MySQLInit.getValue("mysql.create.table");
     private static String sqlUseDataBase = MySQLInit.getValue("mysql.use");
     private static String sqlInsertFirstWorker = MySQLInit.getValue("mysql.first.worker");
     private static String sqlInsertSecondWorker = MySQLInit.getValue("mysql.second.worker");
+    private static String sqlSelect = format("select * from %s", sqlTableName);
     private static Connection dbConnect;
+    private static Statement stmt;
     private Worker worker;
 
     @BeforeAll
     public static void createMySqlTable() throws SQLException {
         dbConnect = MySQLInit.getConnection();
         Statement stmt = dbConnect.createStatement();
-        ActionMySQL.createDB(stmt, dbConnect, sqlDbName);
+        ActionMySQL.createDB(stmt, sqlDbName);
         ActionMySQL.createTable(stmt, sqlUseDataBase, sqlCreateTable);
         ActionMySQL.insertInToTable(stmt, sqlInsertFirstWorker);
         ActionMySQL.insertInToTable(stmt, sqlInsertSecondWorker);
@@ -39,7 +44,7 @@ public class ValidateCRUD_Operations {
     @Order(1)
     public void whenReadFirstLineInTable_ThenEntityCorrect() throws SQLException {
 
-        try (PreparedStatement pstmt = dbConnect.prepareStatement("select * from workers where Id < 2 ");
+        try (PreparedStatement pstmt = dbConnect.prepareStatement(sqlSelect + "where Id < 2 ");
              ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
                 worker = ActionMySQL.createWorker(rs);
@@ -53,7 +58,7 @@ public class ValidateCRUD_Operations {
     public void whenInsertNewEntity_ThenNumberRowTableIsCorrect() throws SQLException {
         int rowCount = 0;
         try (PreparedStatement pstmt = dbConnect
-                .prepareStatement("select * from workers ", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                .prepareStatement(sqlSelect, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
              ResultSet rs = pstmt.executeQuery()) {
             rs.moveToInsertRow();
             rs.updateString("firstName", "Sasha");
@@ -75,7 +80,7 @@ public class ValidateCRUD_Operations {
         try (Statement pstmt = dbConnect
                 .createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE, ResultSet.HOLD_CURSORS_OVER_COMMIT)) {
             dbConnect.setAutoCommit(false);
-            ResultSet rs = pstmt.executeQuery("select * from workers");
+            ResultSet rs = pstmt.executeQuery(sqlSelect);
             while (rs.next()) {
                 if (rs.getString("firstName")
                         .equalsIgnoreCase("Sasha")) {
@@ -95,13 +100,13 @@ public class ValidateCRUD_Operations {
     public void whenDeleteRow_ThenNumberRowIsCorrect() throws SQLException {
         int numOfRows = 0;
         try (PreparedStatement pstmt = dbConnect
-                .prepareStatement("select * from workers", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                .prepareStatement(sqlSelect, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
              ResultSet rs = pstmt.executeQuery()) {
             rs.absolute(1);
             rs.deleteRow();
         }
         try (PreparedStatement pstmt = dbConnect
-                .prepareStatement("select * from workers", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                .prepareStatement(sqlSelect, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
              ResultSet rs = pstmt.executeQuery()) {
             rs.last();
             numOfRows = rs.getRow();
@@ -117,7 +122,7 @@ public class ValidateCRUD_Operations {
         List<Worker> listOfWorkers = new ArrayList<Worker>();
         try {
             pstmt = dbConnect
-                    .prepareStatement("select * from workers", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                    .prepareStatement(sqlSelect, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
             pstmt.setFetchSize(1);
             rs = pstmt.executeQuery();
             rs.setFetchSize(1);
@@ -127,17 +132,27 @@ public class ValidateCRUD_Operations {
             }
         } catch (SQLException ex) {
             LGR.log(Level.INFO, ex.getMessage(), ex);
-            ;
         }
         Assertions.assertEquals(2, listOfWorkers.size());
     }
 
+    @Test
+    @Order(6)
+    public void whenCleanAndDeleteTable_ThenResultCorrect()  {
+
+        Assertions.assertTrue(ActionMySQL.cleanAndDeleteTable(stmt, sqlTableName));
+    }
+
+    @Test
+    @Order(7)
+    public void whenDeleteDB_ThenResultCorrect()  {
+
+        Assertions.assertTrue(ActionMySQL.deleteDB(stmt, sqlDbName));
+    }
+
     @AfterAll
     public static void tearDown() throws SQLException {
-        String sqlDeleteDB = format("DROP DATABASE %s", sqlDbName);
-        PreparedStatement deleteStmt = dbConnect
-                .prepareStatement(sqlDeleteDB, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-        deleteStmt.execute();
+        stmt.close();
         dbConnect.close();
     }
 

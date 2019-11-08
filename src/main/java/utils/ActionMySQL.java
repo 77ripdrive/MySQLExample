@@ -2,7 +2,6 @@ package utils;
 
 import entity.Worker;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -15,7 +14,7 @@ public class ActionMySQL {
 
     private static final Logger LOG = Logger.getLogger(ActionMySQL.class.getName());
 
-    public static boolean createDB(Statement stmt, Connection con, String dbName) throws SQLException {
+    public static boolean createDB(Statement stmt, String dbName) {
         String sqlDB = format("CREATE DATABASE IF NOT EXISTS %s", dbName);
         try {
             stmt.executeUpdate(sqlDB);
@@ -38,11 +37,20 @@ public class ActionMySQL {
         LOG.log(Level.INFO, "Data inserted in to table");
     }
 
-    public static void deleteTable(Statement stmt, String tableName) throws SQLException {
-        String sql = format("DROP TABLE %s ", tableName);
-        stmt.executeUpdate(sql);
-        LOG.log(Level.INFO, "Table " + tableName + "deleted in given database");
+    public static boolean cleanAndDeleteTable(Statement stmt, String tableName) {
+        String sqlCleanTable = format("TRUNCATE TABLE %s", tableName);
+        String sqlDeleteTable = format("DROP TABLE %s ", tableName);
+        try {
+            stmt.executeUpdate(sqlCleanTable);
+            stmt.executeUpdate(sqlDeleteTable);
+        } catch (Exception ex) {
+            LOG.log(Level.INFO, "Table " + tableName + "clean and delete fail");
+            return false;
+        }
+        LOG.log(Level.INFO, "Table " + tableName + "clean and delete completed");
+        return true;
     }
+
 
     public static boolean deleteDB(Statement stmt, String dbName) {
         String sql = format("DROP DATABASE %s", dbName);
@@ -62,8 +70,7 @@ public class ActionMySQL {
         String name = rs.getString("firstName");
         String position = rs.getString("position");
         int salary = rs.getInt("salary");
-        Worker worker = new Worker(id, name, position, salary);
-        return worker;
+        return new Worker(id, name, position, salary);
     }
 
 }
