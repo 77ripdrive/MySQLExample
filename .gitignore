@@ -21,3 +21,5 @@ output/
 *.ear
 target/
 test-output/
+ .allure/
+ .mvn/
